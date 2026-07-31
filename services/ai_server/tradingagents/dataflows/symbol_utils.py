@@ -101,6 +101,22 @@ def _normalize_crypto(s: str) -> str | None:
     return f"{base}-USD" if base else None
 
 
+_A_SHARE_BARE = re.compile(r"^\d{6}$")
+_A_SHARE_SUFFIXED = re.compile(r"^\d{6}\.(SS|SH|SZ)$")
+
+
+def _normalize_a_share(s: str) -> str | None:
+    """Map bare/CN A-share codes to Yahoo form (``600036.SS`` / ``000001.SZ``)."""
+    if _A_SHARE_SUFFIXED.match(s):
+        return f"{s[:-3]}.SS" if s.endswith(".SH") else s
+    if not _A_SHARE_BARE.match(s):
+        return None
+    # Shanghai: 5/6/9xxxx; Shenzhen (and ChiNext): otherwise.
+    if s.startswith(("5", "6", "9")):
+        return f"{s}.SS"
+    return f"{s}.SZ"
+
+
 def normalize_symbol(raw: str) -> str:
     """Map a user/broker symbol to its canonical Yahoo Finance symbol.
 
@@ -109,7 +125,8 @@ def normalize_symbol(raw: str) -> str:
       2. Crypto rule: a known crypto base quoted in USD/USDT/USDC (dashed or
          not) -> ``BASE-USD``.
       3. Forex rule: six letters that are two ISO currency codes -> ``PAIR=X``.
-      4. Otherwise the upper-cased symbol is returned unchanged (plain
+      4. A-share rule: 6-digit CN codes -> ``.SS`` / ``.SZ``.
+      5. Otherwise the upper-cased symbol is returned unchanged (plain
          equities, ETFs, Yahoo-native symbols like ``GC=F`` or ``^GSPC``).
 
     A trailing ``+`` (broker CFD marker, e.g. ``XAUUSD+``) is stripped before
@@ -124,12 +141,15 @@ def normalize_symbol(raw: str) -> str:
     s = s.rstrip("+")
 
     crypto = _normalize_crypto(s)
+    a_share = _normalize_a_share(s)
     if s in _ALIASES:
         canonical = _ALIASES[s]
     elif crypto is not None:
         canonical = crypto
     elif len(s) == 6 and s[:3] in _FOREX_CURRENCIES and s[3:] in _FOREX_CURRENCIES:
         canonical = f"{s}=X"
+    elif a_share is not None:
+        canonical = a_share
     else:
         canonical = s
 

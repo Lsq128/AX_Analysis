@@ -34,6 +34,15 @@ def test_to_akshare_code():
     assert to_akshare_code("000001.sz") == "000001"
 
 
+def test_normalize_symbol_a_share():
+    from tradingagents.dataflows.symbol_utils import normalize_symbol
+
+    assert normalize_symbol("600036") == "600036.SS"
+    assert normalize_symbol("000001") == "000001.SZ"
+    assert normalize_symbol("600519.SH") == "600519.SS"
+    assert normalize_symbol("AAPL") == "AAPL"
+
+
 def test_apply_a_share_vendors():
     cfg = {"data_vendors": {"core_stock_apis": "yfinance"}, "global_news_queries": ["US only"]}
     out = apply_a_share_vendors(cfg, "600519.SS")

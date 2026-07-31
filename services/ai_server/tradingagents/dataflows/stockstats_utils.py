@@ -145,12 +145,33 @@ def _needs_same_day_refresh(data_file, curr_date_dt, today_date) -> bool:
     return time.time() - os.path.getmtime(data_file) > OHLCV_CACHE_TTL_SECONDS
 
 
+def _load_a_share_ohlcv(symbol: str, start_str: str, end_str: str) -> pd.DataFrame | None:
+    """Optional AX path: Tencent-first A-share history. Returns None if unavailable."""
+    try:
+        from ax_dataflows.symbols import is_a_share
+        from ax_dataflows.vendors.stock import fetch_a_share_ohlcv
+    except ImportError:
+        return None
+    if not (is_a_share(symbol) or is_a_share(normalize_symbol(symbol))):
+        return None
+    try:
+        frame = fetch_a_share_ohlcv(normalize_symbol(symbol), start_str, end_str)
+    except Exception as exc:  # noqa: BLE001 — fall through to Yahoo
+        logger.warning("A-share OHLCV via ax_dataflows failed for %s: %s", symbol, exc)
+        return None
+    if frame is None or frame.empty or "Close" not in frame.columns:
+        return None
+    return frame
+
+
 def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     """Fetch OHLCV data with caching, filtered to prevent look-ahead bias.
 
     Downloads 5 years of data up to today and caches per symbol. On
     subsequent calls the cache is reused. Rows after curr_date are
     filtered out so backtests never see future prices.
+
+    For CN A-shares, prefer ``ax_dataflows`` (Tencent-first) before Yahoo.
     """
     # Resolve broker/forex symbols (XAUUSD+ -> GC=F) to Yahoo's convention,
     # then reject values that would escape the cache directory when
@@ -192,15 +213,19 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
             data = cached
 
     if data is None:
-        downloaded = yf_retry(lambda: yf.download(
-            canonical,
-            start=start_str,
-            end=end_str,
-            multi_level_index=False,
-            progress=False,
-            auto_adjust=True,
-        ))
-        downloaded = _ensure_date_column(downloaded.reset_index())
+        downloaded = _load_a_share_ohlcv(canonical, start_str, end_str)
+        if downloaded is None:
+            downloaded = yf_retry(lambda: yf.download(
+                canonical,
+                start=start_str,
+                end=end_str,
+                multi_level_index=False,
+                progress=False,
+                auto_adjust=True,
+            ))
+            downloaded = _ensure_date_column(downloaded.reset_index())
+        else:
+            downloaded = _ensure_date_column(downloaded)
         # Only cache real data — never persist an empty frame.
         if downloaded.empty or "Close" not in downloaded.columns:
             raise NoMarketDataError(
