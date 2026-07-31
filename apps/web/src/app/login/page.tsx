@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { fetchAuthConfig, isLoggedIn, login, oauthStartUrl } from "@/lib/api";
 import type { AuthConfig } from "@/lib/api";
 
-export default function LoginPage() {
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/workspace";
+  return raw;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const search = useSearchParams();
+  const nextPath = safeNext(search.get("next"));
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [userId, setUserId] = useState("demo");
   const [displayName, setDisplayName] = useState("");
@@ -16,11 +23,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoggedIn()) {
-      router.replace("/workspace");
+      router.replace(nextPath);
       return;
     }
     fetchAuthConfig().then(setConfig).catch(console.error);
-  }, [router]);
+  }, [router, nextPath]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,7 +35,7 @@ export default function LoginPage() {
     setError("");
     try {
       await login(userId.trim(), displayName.trim() || undefined);
-      router.push("/workspace");
+      router.push(nextPath);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -41,9 +48,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="card w-full max-w-md p-8 space-y-5">
+      <div className="card w-full max-w-md p-8 space-y-5 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold">登录 AX_Analysis</h1>
+          <p className="font-display text-3xl font-semibold tracking-tight">
+            <span className="text-[var(--accent)]">AX</span>
+          </p>
+          <h1 className="mt-3 text-lg font-semibold">登录后继续分析</h1>
           <p className="text-sm text-[var(--muted)] mt-1">
             {oauthProviders.length
               ? "使用 OAuth 登录，或在开发模式下使用本地账号"
@@ -57,7 +67,7 @@ export default function LoginPage() {
               <a
                 key={provider.id}
                 href={oauthStartUrl(provider.id)}
-                className="block w-full rounded-lg border border-[var(--border)] py-2.5 text-center text-sm hover:border-[var(--accent)]"
+                className="block w-full rounded-full border border-[var(--border)] py-2.5 text-center text-sm hover:border-[var(--accent)]"
               >
                 使用 {provider.label} 登录
               </a>
@@ -75,7 +85,7 @@ export default function LoginPage() {
               <input
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 outline-none focus:border-[var(--accent)]"
                 required
               />
             </label>
@@ -84,16 +94,12 @@ export default function LoginPage() {
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 outline-none focus:border-[var(--accent)]"
               />
             </label>
             {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {loading ? "登录中…" : "进入工作台"}
+            <button type="submit" disabled={loading} className="ax-btn-primary w-full !rounded-xl">
+              {loading ? "登录中…" : "进入"}
             </button>
           </form>
         )}
@@ -107,5 +113,13 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

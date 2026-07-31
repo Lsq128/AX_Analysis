@@ -130,7 +130,7 @@ function WizardContent() {
 
       {step === 1 && (
         <section className="space-y-4">
-          <p className="text-sm text-[var(--muted)]">左右切换方案，选中后进入下一步</p>
+          <p className="text-sm text-[var(--muted)]">左右手牌切换方案，点中间两侧或按钮后进入下一步</p>
           <PresetCarousel presets={presets} value={presetId} onChange={setPresetId} />
           {selected?.locked && (
             <p className="text-sm text-[var(--warning)]">
@@ -150,7 +150,7 @@ function WizardContent() {
             value={ticker}
             onChange={(e) => setTicker(e.target.value)}
             placeholder="600519 / 0700.HK / NVDA"
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 outline-none focus:border-[var(--accent)]"
+            className="w-full rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-3 outline-none focus:border-[var(--accent)] shadow-sm"
           />
           {searchResults.length > 0 && (
             <div className="card divide-y divide-[var(--border)] overflow-hidden">

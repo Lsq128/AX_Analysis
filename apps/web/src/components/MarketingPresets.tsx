@@ -31,9 +31,9 @@ export function MarketingPresets() {
     <section id="pricing" className="py-16 mx-auto max-w-6xl px-4">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">分析方案</h2>
+          <h2 className="font-display text-2xl font-medium tracking-tight">分析方案</h2>
           <p className="text-[var(--muted)] mt-2 text-sm">
-            按点数消耗，新用户默认 50 点/月。选择适合深度的方案开始。
+            按点数消耗。首页输入代码后，可在向导中选择深度。
           </p>
         </div>
         <Link

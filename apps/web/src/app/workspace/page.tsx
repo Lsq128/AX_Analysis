@@ -25,7 +25,7 @@ export default function WorkspaceDashboard() {
     <div className="space-y-10">
       <section className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="font-display text-2xl font-medium tracking-tight">
             早上好，{me?.display_name || "投资者"}
           </h1>
           <p className="text-[var(--muted)] mt-1 text-sm">
@@ -34,10 +34,7 @@ export default function WorkspaceDashboard() {
               : "加载账户信息…"}
           </p>
         </div>
-        <Link
-          href="/workspace/analyses/new"
-          className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
-        >
+        <Link href="/workspace/analyses/new" className="ax-btn-primary text-sm !px-5 !py-2.5">
           发起分析
         </Link>
       </section>

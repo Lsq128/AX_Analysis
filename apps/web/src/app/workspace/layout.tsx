@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { fetchMe, isLoggedIn, logout } from "@/lib/api";
@@ -17,6 +17,7 @@ const nav = [
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [me, setMe] = useState<UserMe | null>(null);
 
   useEffect(() => {
@@ -34,25 +35,40 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-10 border-b border-[var(--border)]/80 bg-[var(--bg)]/85 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-8">
-            <Link href="/" className="font-semibold tracking-tight">
-              <span className="text-[var(--accent)]">AX</span>_Analysis
+            <Link href="/" className="font-display text-lg font-semibold tracking-tight">
+              <span className="text-[var(--accent)]">AX</span>
+              <span className="ml-1.5 font-sans text-sm font-medium text-[var(--muted)]">Analysis</span>
             </Link>
-            <nav className="hidden sm:flex gap-5 text-sm text-[var(--muted)]">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href} className="hover:text-[var(--text)]">
-                  {item.label}
-                </Link>
-              ))}
+            <nav className="hidden sm:flex gap-1 text-sm">
+              {navItems.map((item) => {
+                const active =
+                  item.href === "/workspace"
+                    ? pathname === "/workspace"
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-full px-3 py-1.5 transition-colors ${
+                      active
+                        ? "bg-[var(--accent-dim)] text-[var(--accent)] font-medium"
+                        : "text-[var(--muted)] hover:text-[var(--text)]"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-[var(--muted)] hidden sm:inline" id="quota-badge">
+            <span className="text-[var(--muted)] hidden sm:inline tabular-nums">
               {me
-                ? `配额 ${me.points_remaining.toFixed(1)} / ${me.points_limit.toFixed(0)} 点 · ${me.plan_label}`
-                : "加载配额…"}
+                ? `${me.points_remaining.toFixed(1)} / ${me.points_limit.toFixed(0)} 点 · ${me.plan_label}`
+                : "…"}
             </span>
             {isLoggedIn() ? (
               <button type="button" onClick={onLogout} className="text-[var(--muted)] hover:text-[var(--text)]">
