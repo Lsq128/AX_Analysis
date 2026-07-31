@@ -1,0 +1,42 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ax_redis_data:/data
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ax
+      POSTGRES_PASSWORD: ax
+      POSTGRES_DB: ax_analysis
+    ports:
+      - "5432:5432"
+    volumes:
+      - ax_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ax -d ax_analysis"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: axminio
+      MINIO_ROOT_PASSWORD: axminio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ax_minio_data:/data
+    profiles:
+      - storage
+
+volumes:
+  ax_redis_data:
+  ax_pg_data:
+  ax_minio_data:
