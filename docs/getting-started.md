@@ -23,6 +23,21 @@ A 股数据推荐额外安装 CN 扩展：`pip install -e ".[cn,dev]"`
 
 ---
 
+## 2a. Docker 一键演示（可选）
+
+不装本机 Python/Node 时，可用：
+
+```bash
+cp .env.example .env   # 填 LLM Key
+./scripts/up.sh
+```
+
+浏览器打开 http://localhost:3000 。停止：`./scripts/down.sh`。
+
+这是 **dev/demo** 路径；日常改代码仍建议用下文的 venv + 三终端方式。
+
+---
+
 ## 2. 安装
 
 ```bash
@@ -50,6 +65,8 @@ ax-worker --help
 ---
 
 ## 3. 启动基础设施（Docker）
+
+> 注意：裸跑 `docker compose up -d`（不写服务名）会拉起 **postgres + redis + api + worker + web** 全栈。本机三终端开发请显式只起基础设施：
 
 ```bash
 cd AX_Analysis

@@ -36,7 +36,87 @@ services:
     profiles:
       - storage
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    command: ["ax-api"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://ax:ax@postgres:5432/ax_analysis
+      REDIS_URL: redis://redis:6379/0
+      AX_JOB_STORE: redis
+      AX_DATA_ROOT: /data/ax
+      AX_REPORT_STORAGE: local
+      AX_REPORT_LOCAL_ROOT: /data/ax/report_storage
+      AX_AUTH_DEV_MODE: "true"
+      AX_AUTH_ALLOW_HEADER: "true"
+      AX_AUTH_DEV_LOGIN: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ax_data:/data/ax
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    command: ["ax-worker"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://ax:ax@postgres:5432/ax_analysis
+      REDIS_URL: redis://redis:6379/0
+      AX_JOB_STORE: redis
+      AX_DATA_ROOT: /data/ax
+      AX_REPORT_STORAGE: local
+      AX_REPORT_LOCAL_ROOT: /data/ax/report_storage
+    volumes:
+      - ax_data:/data/ax
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        API_PROXY_URL: http://api:8000
+    environment:
+      # API_PROXY_URL is read by next.config at next start (server).
+      # NEXT_PUBLIC_* must be set at next build time if customized; demo uses code defaults.
+      API_PROXY_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   ax_redis_data:
   ax_pg_data:
   ax_minio_data:
+  ax_data:

@@ -29,10 +29,27 @@ AX_Analysis/
 ├── services/ai_server/tradingagents/   ← 多 Agent 引擎（vendored）
 ├── packages/                           ← ax_engine · ax_billing · ax_dataflows …
 ├── apps/web · api · worker
-├── docker-compose.yml                  ← Postgres + Redis + MinIO(可选)
+├── Dockerfile.python · Dockerfile.web  ← 演示栈镜像
+├── docker-compose.yml                  ← Postgres + Redis + API + Worker + Web (+ MinIO 可选)
+├── scripts/up.sh · down.sh             ← Docker 一键演示
 ├── scripts/dev_stack.sh
 └── docs/
 ```
+
+---
+
+## 一键启动（Docker 演示）
+
+需已安装 Docker，并准备好 `.env`（至少一个 LLM Key）：
+
+```bash
+cd AX_Analysis
+cp .env.example .env   # 填写 DEEPSEEK_API_KEY 等
+./scripts/up.sh        # → http://localhost:3000
+./scripts/down.sh      # 停止（默认保留数据卷）
+```
+
+> 演示栈：Postgres + Redis + API + Worker + Web。生产部署见 [docs/deployment.md](./docs/deployment.md)。
 
 ---
 

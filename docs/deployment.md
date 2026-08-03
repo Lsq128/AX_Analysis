@@ -41,7 +41,17 @@
 
 ## 2. Docker 部署
 
-当前 `docker-compose.yml` 提供 **基础设施容器**；API / Worker / Web 建议在宿主机或独立进程管理（systemd / supervisor）。也可自行 Dockerfile 打包（见 § 2.4）。
+### 2.0 Docker 一键演示（dev/demo）
+
+```bash
+cp .env.example .env   # 至少一个 LLM Key
+./scripts/up.sh        # postgres + redis + api + worker + web
+```
+
+详见设计规格 `docs/superpowers/specs/2026-08-03-docker-one-click-design.md`。  
+**生产请勿直接依赖该路径的默认鉴权（dev header / dev login）。**
+
+当前也可只起基础设施容器（§2.1）；API / Worker / Web 可在宿主机运行（§2.3）。
 
 ### 2.1 仅基础设施（推荐起步）
 
@@ -110,10 +120,19 @@ Worker 启动前 **工作目录须在 `AX_Analysis/`**，以便 `load_ax_env()` 
 
 ### 2.4 容器化 API / Worker（可选参考）
 
-仓库暂未内置 Dockerfile，可按以下思路自建：
+演示栈已内置 Dockerfile，由 `docker-compose.yml` 引用：
+
+| 文件 | 用途 |
+|------|------|
+| `Dockerfile.python` | API、Worker（`api` / `worker` 服务） |
+| `Dockerfile.web` | Next.js Web（`web` 服务） |
+
+**一键启动**见 **§2.0**（`./scripts/up.sh` → Postgres + Redis + API + Worker + Web）。
+
+以下为 **生产环境自定义镜像** 时的可选参考（演示栈无需自建）：
 
 ```dockerfile
-# 示例 Dockerfile.api
+# 示例 Dockerfile.api（生产定制）
 FROM python:3.12-slim
 WORKDIR /app
 COPY . .

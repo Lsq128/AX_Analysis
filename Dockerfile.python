@@ -1,0 +1,23 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# System deps some wheels / akshare paths may need
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md ./
+COPY packages ./packages
+COPY apps/api ./apps/api
+COPY apps/worker ./apps/worker
+COPY services/ai_server ./services/ai_server
+
+RUN pip install --no-cache-dir -e ".[api,cn,storage]"
+
+ENV PYTHONUNBUFFERED=1
+ENV AX_DATA_ROOT=/data/ax
+ENV AX_REPORT_LOCAL_ROOT=/data/ax/report_storage
+
+# Default; compose overrides command
+CMD ["ax-api"]
