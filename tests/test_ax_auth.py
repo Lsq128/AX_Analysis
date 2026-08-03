@@ -46,6 +46,7 @@ def test_auth_config_defaults(client):
     assert data["dev_mode"] is True
     assert data["dev_login"] is True
     assert data["header_fallback"] is True
+    assert data["billing_enabled"] is False
 
 
 def test_header_fallback_disabled(client, monkeypatch):

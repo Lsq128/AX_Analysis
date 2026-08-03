@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchJobs, fetchMe, fetchPresets } from "@/lib/api";
+import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { formatDateTime } from "@/lib/format";
 import { presetLabelZh } from "@/lib/presets";
 import type { AnalysisJob, Preset, UserMe } from "@/lib/types";
 
 export default function WorkspaceDashboard() {
+  const billingEnabled = useBillingEnabled();
   const [me, setMe] = useState<UserMe | null>(null);
   const [jobs, setJobs] = useState<AnalysisJob[]>([]);
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -29,9 +31,11 @@ export default function WorkspaceDashboard() {
             早上好，{me?.display_name || "投资者"}
           </h1>
           <p className="text-[var(--muted)] mt-1 text-sm">
-            {me
-              ? `剩余 ${me.points_remaining.toFixed(1)} 点 · 本月套餐 ${me.plan_label}`
-              : "加载账户信息…"}
+            {billingEnabled
+              ? me
+                ? `剩余 ${me.points_remaining.toFixed(1)} 点 · 本月套餐 ${me.plan_label}`
+                : "加载账户信息…"
+              : "个人模式 · 无限分析"}
           </p>
         </div>
         <Link href="/workspace/analyses/new" className="ax-btn-primary text-sm !px-5 !py-2.5">
@@ -123,13 +127,13 @@ export default function WorkspaceDashboard() {
                 key={p.id}
                 href={`/workspace/analyses/new?preset=${p.id}`}
                 className="ax-list-row"
-                aria-disabled={p.locked || undefined}
-                style={p.locked ? { opacity: 0.45, pointerEvents: "none" } : undefined}
+                aria-disabled={(billingEnabled && p.locked) || undefined}
+                style={billingEnabled && p.locked ? { opacity: 0.45, pointerEvents: "none" } : undefined}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{p.label}</span>
-                    {p.locked && (
+                    {billingEnabled && p.locked && (
                       <span className="text-xs text-[var(--warning)]">需升级</span>
                     )}
                   </div>
@@ -139,7 +143,7 @@ export default function WorkspaceDashboard() {
                 </div>
                 <div className="shrink-0 text-right text-xs text-[var(--muted)] tabular-nums leading-relaxed">
                   <div>约 {p.eta_minutes} 分钟</div>
-                  <div>{p.quota_points} 点起</div>
+                  {billingEnabled && <div>{p.quota_points} 点起</div>}
                 </div>
               </Link>
             ))}

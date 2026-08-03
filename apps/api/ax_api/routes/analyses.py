@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 
 from ax_api.deps import assert_job_owner, get_current_user, get_current_user_id, get_store
 from ax_api.schemas import AnalysisJobResponse, CreateAnalysisRequest
-from ax_billing import compute_consumption_points, is_preset_allowed
+from ax_billing import compute_consumption_points, is_billing_enabled, is_preset_allowed
 from ax_db.repository import InsufficientQuotaError, UserRepository
 from ax_db.session import db_enabled, session_scope
 from ax_engine.ticker import is_valid_ticker_input, normalize_ticker_symbol
@@ -76,7 +76,8 @@ def create_analysis(
     if not is_valid_ticker_input(body.ticker):
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
 
-    if body.preset and not is_preset_allowed(user.get("plan_id", "standard"), body.preset):
+    billing_on = is_billing_enabled()
+    if billing_on and body.preset and not is_preset_allowed(user.get("plan_id", "standard"), body.preset):
         raise HTTPException(
             status_code=403,
             detail={
@@ -98,6 +99,7 @@ def create_analysis(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    charge_points = points if billing_on else 0.0
     ticker = normalize_ticker_symbol(body.ticker)
     job = AnalysisJobRecord.new(
         user_id=user_id,
@@ -113,8 +115,9 @@ def create_analysis(
         try:
             with session_scope() as session:
                 user = UserRepository(session).get_or_create(user_id)
-                UserRepository(session).charge_points(user.id, points)
-                store.create_job(job, user_uuid=user.id, points_charged=points)
+                if billing_on:
+                    UserRepository(session).charge_points(user.id, charge_points)
+                store.create_job(job, user_uuid=user.id, points_charged=charge_points)
         except InsufficientQuotaError as exc:
             raise HTTPException(
                 status_code=402,
@@ -128,7 +131,7 @@ def create_analysis(
         store.create_job(job)
 
     store.publish_event(job.job_id, {"type": "queued", "status": JobStatus.QUEUED.value})
-    return _job_response(job, points_charged=points if db_enabled() else None)
+    return _job_response(job, points_charged=charge_points if (billing_on and db_enabled()) else None)
 
 
 @router.get("/{job_id}", response_model=AnalysisJobResponse)

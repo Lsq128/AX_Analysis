@@ -13,11 +13,13 @@ import {
   searchTickers,
 } from "@/lib/api";
 import { PresetCarousel } from "@/components/PresetCarousel";
+import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import type { LlmProvider, Preset, QuotaEstimate, RecentTicker, TickerSearchResult, UserMe } from "@/lib/types";
 
 function WizardContent() {
   const router = useRouter();
   const params = useSearchParams();
+  const billingEnabled = useBillingEnabled();
   const [step, setStep] = useState(1);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [providers, setProviders] = useState<LlmProvider[]>([]);
@@ -71,11 +73,14 @@ function WizardContent() {
   }, [params]);
 
   useEffect(() => {
-    if (!presetId || !providerId) return;
+    if (!billingEnabled || !presetId || !providerId) {
+      setEstimate(null);
+      return;
+    }
     estimateQuota(presetId, providerId)
       .then(setEstimate)
       .catch(() => setEstimate(null));
-  }, [presetId, providerId]);
+  }, [presetId, providerId, billingEnabled]);
 
   useEffect(() => {
     if (!selectedProvider) return;
@@ -95,7 +100,8 @@ function WizardContent() {
   }, [ticker]);
 
   async function submit() {
-    if (!selected || !ticker.trim() || selected.locked) return;
+    if (!selected || !ticker.trim()) return;
+    if (billingEnabled && selected.locked) return;
     setSubmitting(true);
     setError("");
     try {
@@ -117,6 +123,7 @@ function WizardContent() {
 
   const points = estimate?.total_points ?? selected?.quota_points ?? 0;
   const remaining = me?.points_remaining ?? 0;
+  const insufficientPoints = Boolean(billingEnabled && remaining < points);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -131,8 +138,13 @@ function WizardContent() {
       {step === 1 && (
         <section className="space-y-4">
           <p className="text-sm text-[var(--muted)]">左右手牌切换方案，点中间两侧或按钮后进入下一步</p>
-          <PresetCarousel presets={presets} value={presetId} onChange={setPresetId} />
-          {selected?.locked && (
+          <PresetCarousel
+            presets={presets}
+            value={presetId}
+            onChange={setPresetId}
+            showBilling={Boolean(billingEnabled)}
+          />
+          {billingEnabled && selected?.locked && (
             <p className="text-sm text-[var(--warning)]">
               「{selected.label}」需要更高套餐。
               <Link href="/workspace/billing" className="text-[var(--accent)] hover:underline ml-1">
@@ -228,7 +240,9 @@ function WizardContent() {
       {step === 4 && selected && (
         <section className="space-y-4">
           <div>
-            <p className="text-sm text-[var(--muted)] mb-3">选择推理引擎（影响点数系数）</p>
+            <p className="text-sm text-[var(--muted)] mb-3">
+              {billingEnabled ? "选择推理引擎（影响点数系数）" : "选择推理引擎"}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {providers.map((p) => (
                 <button
@@ -241,7 +255,9 @@ function WizardContent() {
                 >
                   <div className="font-medium">{p.label}</div>
                   <div className="text-xs text-[var(--muted)] mt-1">{p.description}</div>
-                  <div className="text-sm mt-2 text-[var(--accent)]">×{p.quota_factor} 系数</div>
+                  {billingEnabled && (
+                    <div className="text-sm mt-2 text-[var(--accent)]">×{p.quota_factor} 系数</div>
+                  )}
                 </button>
               ))}
             </div>
@@ -286,15 +302,17 @@ function WizardContent() {
             <div>时点：{useToday ? todayStr() + "（当前）" : analysisDate}</div>
             <div>引擎：{selectedProvider?.label ?? providerId}</div>
           </div>
-          <div className="card p-5">
-            <div className="text-lg font-medium">本次消耗 {points} 点</div>
-            {estimate && (
-              <div className="text-xs text-[var(--muted)] mt-1">
-                {estimate.base_points} 点（方案） × {estimate.provider_factor}（引擎）
-              </div>
-            )}
-            <div className="text-sm text-[var(--muted)] mt-2">剩余配额 {remaining.toFixed(1)} 点</div>
-          </div>
+          {billingEnabled && (
+            <div className="card p-5">
+              <div className="text-lg font-medium">本次消耗 {points} 点</div>
+              {estimate && (
+                <div className="text-xs text-[var(--muted)] mt-1">
+                  {estimate.base_points} 点（方案） × {estimate.provider_factor}（引擎）
+                </div>
+              )}
+              <div className="text-sm text-[var(--muted)] mt-2">剩余配额 {remaining.toFixed(1)} 点</div>
+            </div>
+          )}
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
             我已阅读并理解：AX 提供 AI 研究辅助，不构成投资建议。
@@ -320,7 +338,7 @@ function WizardContent() {
         {step < 4 ? (
           <button
             type="button"
-            disabled={(step === 1 && selected?.locked) || (step === 2 && !ticker.trim())}
+            disabled={(step === 1 && Boolean(billingEnabled && selected?.locked)) || (step === 2 && !ticker.trim())}
             onClick={() => setStep((s) => s + 1)}
             className="rounded-lg bg-[var(--accent)] px-5 py-2 text-sm text-white disabled:opacity-40"
           >
@@ -329,7 +347,7 @@ function WizardContent() {
         ) : (
           <button
             type="button"
-            disabled={!agreed || submitting || remaining < points}
+            disabled={!agreed || submitting || insufficientPoints}
             onClick={submit}
             className="rounded-lg bg-[var(--accent)] px-5 py-2 text-sm text-white disabled:opacity-40"
           >

@@ -53,10 +53,13 @@ class AuthConfigResponse(BaseModel):
     dev_login: bool
     header_fallback: bool
     oauth_providers: list[OAuthProviderResponse]
+    billing_enabled: bool
 
 
 @router.get("/config", response_model=AuthConfigResponse)
 def auth_config() -> AuthConfigResponse:
+    from ax_billing import is_billing_enabled
+
     providers = [
         OAuthProviderResponse(id=pid, label=PROVIDER_LABELS.get(pid, pid.upper()))
         for pid in configured_oauth_providers()
@@ -66,6 +69,7 @@ def auth_config() -> AuthConfigResponse:
         dev_login=dev_login_enabled(),
         header_fallback=allow_header_fallback(),
         oauth_providers=providers,
+        billing_enabled=is_billing_enabled(),
     )
 
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   fetchAdminStats,
@@ -8,9 +9,12 @@ import {
   fetchMe,
   updateUserQuota,
 } from "@/lib/api";
+import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import type { AdminStats, AdminUser, BillingPlan, UserMe } from "@/lib/types";
 
 export default function AdminPage() {
+  const router = useRouter();
+  const billingEnabled = useBillingEnabled();
   const [me, setMe] = useState<UserMe | null>(null);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -33,10 +37,16 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
+    if (billingEnabled === false) {
+      router.replace("/workspace");
+      return;
+    }
+    if (billingEnabled !== true) return;
+
     reload()
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [billingEnabled, router]);
 
   async function onChangePlan(userId: string, planId: string) {
     setBusyUser(userId);
@@ -64,7 +74,11 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) {
+  if (billingEnabled === false) {
+    return <p className="text-sm text-[var(--muted)]">计费已关闭，正在返回工作台…</p>;
+  }
+
+  if (billingEnabled === null || loading) {
     return <p className="text-sm text-[var(--muted)]">加载管理面板…</p>;
   }
 

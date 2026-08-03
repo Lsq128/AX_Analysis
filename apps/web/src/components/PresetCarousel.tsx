@@ -8,6 +8,8 @@ type Props = {
   presets: Preset[];
   value: string;
   onChange: (id: string) => void;
+  /** When false (personal mode), hide points badges and upgrade hints. */
+  showBilling?: boolean;
 };
 
 /** Signed circular distance from active index into (-n/2, n/2]. */
@@ -62,11 +64,13 @@ function CardFace({
   indexLabel,
   total,
   active,
+  showBilling = true,
 }: {
   preset: Preset;
   indexLabel: string;
   total: number;
   active: boolean;
+  showBilling?: boolean;
 }) {
   const chips = analystLabelsZh(preset.analysts)
     .split(" · ")
@@ -120,12 +124,16 @@ function CardFace({
       </div>
 
       <div className="relative z-[1] mx-5 mb-5 sm:mx-6 sm:mb-6 flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)]/80 bg-white/75 px-4 py-3 backdrop-blur-sm">
-        <div>
-          <div className="font-display text-2xl font-semibold tabular-nums tracking-tight text-[var(--text)]">
-            {preset.quota_points}
-            <span className="ml-1 font-sans text-xs font-medium text-[var(--muted)]">点起</span>
+        {showBilling ? (
+          <div>
+            <div className="font-display text-2xl font-semibold tabular-nums tracking-tight text-[var(--text)]">
+              {preset.quota_points}
+              <span className="ml-1 font-sans text-xs font-medium text-[var(--muted)]">点起</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-sm text-[var(--muted)]">分析方案</div>
+        )}
         <div className="text-right">
           <div className="text-[11px] uppercase tracking-wider text-[var(--muted)]">预计</div>
           <div className="text-sm font-medium tabular-nums text-[var(--text)]">{preset.eta_minutes} 分钟</div>
@@ -135,9 +143,15 @@ function CardFace({
   );
 }
 
-export function PresetCarousel({ presets, value, onChange }: Props) {
-  const unlocked = useMemo(() => presets.filter((p) => !p.locked), [presets]);
-  const locked = useMemo(() => presets.filter((p) => p.locked), [presets]);
+export function PresetCarousel({ presets, value, onChange, showBilling = true }: Props) {
+  const unlocked = useMemo(
+    () => (showBilling ? presets.filter((p) => !p.locked) : presets),
+    [presets, showBilling],
+  );
+  const locked = useMemo(
+    () => (showBilling ? presets.filter((p) => p.locked) : []),
+    [presets, showBilling],
+  );
   const list = unlocked.length ? unlocked : presets;
   const n = list.length;
 
@@ -213,6 +227,7 @@ export function PresetCarousel({ presets, value, onChange }: Props) {
                   indexLabel={String(i + 1)}
                   total={n}
                   active={active}
+                  showBilling={showBilling}
                 />
               </button>
             );

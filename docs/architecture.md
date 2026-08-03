@@ -107,7 +107,10 @@
 
 ---
 
-## 7. 计费模型
+## 7. 计费模型（可选）
+
+默认 **`AX_BILLING_ENABLED=false`**（个人模式）：不扣点、不套餐门控；Web 隐藏套餐 UI。  
+设为 `true` 时：
 
 ```
 consumption_points = preset.quota_points × llm_provider.quota_factor
@@ -117,7 +120,7 @@ consumption_points = preset.quota_points × llm_provider.quota_factor
 - `retry` 不重复扣点（同一 job_id）
 - `free` 套餐：`deep` Preset API 403 + UI locked
 
-套餐定义：`packages/ax_billing/plans.py`
+套餐定义：`packages/ax_billing/plans.py`；开关：`packages/ax_billing/settings.py`。
 
 ---
 

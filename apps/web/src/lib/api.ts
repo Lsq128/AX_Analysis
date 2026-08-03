@@ -64,6 +64,7 @@ export type AuthConfig = {
   dev_login: boolean;
   header_fallback: boolean;
   oauth_providers: Array<{ id: string; label: string }>;
+  billing_enabled: boolean;
 };
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {

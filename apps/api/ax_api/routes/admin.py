@@ -13,11 +13,16 @@ from ax_api.schemas import (
     AdminUserResponse,
     BillingPlanResponse,
 )
-from ax_billing import get_plan, list_plans
+from ax_billing import get_plan, is_billing_enabled, list_plans
 from ax_db.repository import UserRepository
 from ax_db.session import db_enabled, session_scope
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _require_billing() -> None:
+    if not is_billing_enabled():
+        raise HTTPException(status_code=404, detail="Billing is disabled")
 
 
 def _require_db() -> None:
@@ -44,11 +49,13 @@ def _user_to_admin_response(user, quota) -> AdminUserResponse:
 
 @router.get("/plans", response_model=list[BillingPlanResponse])
 def admin_list_plans(_admin: Annotated[str, Depends(require_admin)]) -> list[BillingPlanResponse]:
+    _require_billing()
     return [BillingPlanResponse(**item) for item in list_plans()]
 
 
 @router.get("/stats", response_model=AdminStatsResponse)
 def admin_stats(_admin: Annotated[str, Depends(require_admin)]) -> AdminStatsResponse:
+    _require_billing()
     _require_db()
     with session_scope() as session:
         repo = UserRepository(session)
@@ -65,6 +72,7 @@ def admin_list_users(
     limit: int = 50,
     offset: int = 0,
 ) -> list[AdminUserResponse]:
+    _require_billing()
     _require_db()
     with session_scope() as session:
         repo = UserRepository(session)
@@ -82,6 +90,7 @@ def admin_update_user_quota(
     body: AdminQuotaUpdateRequest,
     _admin: Annotated[str, Depends(require_admin)],
 ) -> AdminUserResponse:
+    _require_billing()
     _require_db()
     with session_scope() as session:
         repo = UserRepository(session)

@@ -1,8 +1,10 @@
 "use client";
 
 import type { AnalysisJob } from "@/lib/types";
+import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 
 export function JobStatsPanel({ job }: { job: AnalysisJob }) {
+  const billingEnabled = useBillingEnabled();
   const stats = job.stats;
   if (!stats || Object.keys(stats).length === 0) return null;
 
@@ -17,7 +19,9 @@ export function JobStatsPanel({ job }: { job: AnalysisJob }) {
       <Stat label="LLM 调用" value={String(llmCalls)} />
       <Stat label="工具调用" value={String(toolCalls)} />
       <Stat label="Token 入/出" value={`${tokensIn} / ${tokensOut}`} />
-      <Stat label="消耗点数" value={points != null ? points.toFixed(1) : "—"} />
+      {billingEnabled && (
+        <Stat label="消耗点数" value={points != null ? points.toFixed(1) : "—"} />
+      )}
     </div>
   );
 }

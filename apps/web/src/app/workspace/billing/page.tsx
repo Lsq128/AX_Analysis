@@ -1,25 +1,39 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { fetchBillingPlans, fetchMe } from "@/lib/api";
 import type { BillingPlan, UserMe } from "@/lib/types";
 
 export default function BillingPage() {
+  const router = useRouter();
+  const billingEnabled = useBillingEnabled();
   const [me, setMe] = useState<UserMe | null>(null);
   const [plans, setPlans] = useState<BillingPlan[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (billingEnabled === false) {
+      router.replace("/workspace");
+      return;
+    }
+    if (billingEnabled !== true) return;
+
     Promise.all([fetchMe(), fetchBillingPlans()])
       .then(([profile, planList]) => {
         setMe(profile);
         setPlans(planList);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [billingEnabled, router]);
 
-  if (loading) {
+  if (billingEnabled === false) {
+    return <p className="text-sm text-[var(--muted)]">计费已关闭，正在返回工作台…</p>;
+  }
+
+  if (billingEnabled === null || loading) {
     return <p className="text-sm text-[var(--muted)]">加载套餐信息…</p>;
   }
 

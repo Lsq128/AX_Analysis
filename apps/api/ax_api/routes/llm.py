@@ -52,6 +52,11 @@ def estimate_quota(
     preset: Annotated[str, Query()],
     provider: Annotated[str, Query()] = "deepseek",
 ) -> QuotaEstimateResponse:
+    from ax_billing import is_billing_enabled
+
+    if not is_billing_enabled():
+        raise HTTPException(status_code=404, detail="Billing is disabled")
+
     try:
         p = get_preset(preset)
     except KeyError as exc:

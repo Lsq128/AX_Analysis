@@ -4,6 +4,7 @@ from ax_billing.admin import admin_api_key, admin_user_ids, is_admin_user, verif
 from ax_billing.plan_gates import is_preset_allowed, locked_presets_for_plan
 from ax_billing.plans import SubscriptionPlan, default_plan_id, get_plan, list_plans
 from ax_billing.quota import compute_consumption_points
+from ax_billing.settings import is_billing_enabled
 
 __all__ = [
     "SubscriptionPlan",
@@ -12,6 +13,7 @@ __all__ = [
     "compute_consumption_points",
     "default_plan_id",
     "get_plan",
+    "is_billing_enabled",
     "is_preset_allowed",
     "is_admin_user",
     "list_plans",

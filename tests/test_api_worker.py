@@ -60,7 +60,8 @@ def test_list_llm_providers(client):
     assert data[0]["id"] in {"deepseek", "qwen-cn", "kimi"}
 
 
-def test_quota_estimate(client):
+def test_quota_estimate(client, monkeypatch):
+    monkeypatch.setenv("AX_BILLING_ENABLED", "true")
     resp = client.get("/api/v1/llm/quota-estimate?preset=full&provider=qwen-cn")
     assert resp.status_code == 200
     data = resp.json()

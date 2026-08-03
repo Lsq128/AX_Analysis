@@ -49,6 +49,7 @@ def test_plan_gates_free_blocks_deep():
 
 
 def test_presets_mark_deep_locked_for_free_plan(client, monkeypatch):
+    monkeypatch.setenv("AX_BILLING_ENABLED", "true")
     monkeypatch.setenv("AX_DEFAULT_PLAN_ID", "free")
     token = create_access_token(subject="free-user")
     resp = client.get("/api/v1/presets", headers={"Authorization": f"Bearer {token}"})
@@ -59,6 +60,7 @@ def test_presets_mark_deep_locked_for_free_plan(client, monkeypatch):
 
 
 def test_create_deep_analysis_forbidden_on_free_plan(client, monkeypatch):
+    monkeypatch.setenv("AX_BILLING_ENABLED", "true")
     monkeypatch.setenv("AX_DEFAULT_PLAN_ID", "free")
     token = create_access_token(subject="free-user")
     resp = client.post(

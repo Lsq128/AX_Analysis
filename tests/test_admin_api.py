@@ -42,6 +42,7 @@ def sqlite_db(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def memory_store(monkeypatch):
     monkeypatch.setenv("AX_JOB_STORE", "memory")
+    monkeypatch.setenv("AX_BILLING_ENABLED", "true")
     monkeypatch.delenv("AX_ADMIN_USER_IDS", raising=False)
     monkeypatch.delenv("AX_ADMIN_API_KEY", raising=False)
     reset_job_store()

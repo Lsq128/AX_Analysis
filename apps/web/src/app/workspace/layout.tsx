@@ -2,23 +2,24 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
+import { useBillingEnabled } from "@/hooks/useBillingEnabled";
 import { fetchMe, isLoggedIn, logout } from "@/lib/api";
 import type { UserMe } from "@/lib/types";
 
-const nav = [
+const baseNav = [
   { href: "/workspace", label: "首页" },
   { href: "/workspace/analyses/new", label: "发起分析" },
   { href: "/workspace/reports", label: "报告库" },
   { href: "/workspace/memory", label: "复盘" },
-  { href: "/workspace/billing", label: "套餐" },
 ];
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [me, setMe] = useState<UserMe | null>(null);
+  const billingEnabled = useBillingEnabled();
 
   useEffect(() => {
     fetchMe().then(setMe).catch(() => setMe(null));
@@ -29,9 +30,16 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     router.push("/login");
   }
 
-  const navItems = me?.is_admin
-    ? [...nav, { href: "/workspace/admin", label: "管理" }]
-    : nav;
+  const navItems = useMemo(() => {
+    const items = [...baseNav];
+    if (billingEnabled) {
+      items.push({ href: "/workspace/billing", label: "套餐" });
+      if (me?.is_admin) {
+        items.push({ href: "/workspace/admin", label: "管理" });
+      }
+    }
+    return items;
+  }, [billingEnabled, me?.is_admin]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,11 +73,13 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </nav>
           </div>
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-[var(--muted)] hidden sm:inline tabular-nums">
-              {me
-                ? `${me.points_remaining.toFixed(1)} / ${me.points_limit.toFixed(0)} 点 · ${me.plan_label}`
-                : "…"}
-            </span>
+            {billingEnabled && (
+              <span className="text-[var(--muted)] hidden sm:inline tabular-nums">
+                {me
+                  ? `${me.points_remaining.toFixed(1)} / ${me.points_limit.toFixed(0)} 点 · ${me.plan_label}`
+                  : "…"}
+              </span>
+            )}
             {isLoggedIn() ? (
               <button type="button" onClick={onLogout} className="text-[var(--muted)] hover:text-[var(--text)]">
                 退出
